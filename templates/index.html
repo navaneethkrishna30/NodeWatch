@@ -1,20 +1,34 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Service Monitor</title>
-  {{if gt .AutoRefresh 0}}
-  <meta http-equiv="refresh" content="{{.AutoRefresh}}">
-  {{end}}
-  <link rel="stylesheet" href="/style.css">
+  <title>NodeWatch</title>
+  <style>
+    body { font-family: sans-serif; padding: 1rem; background: #f9f9f9; }
+    .ok { color: green; }
+    .fail { color: red; }
+    pre { background: #111; color: #0f0; padding: 1rem; overflow-x: auto; }
+  </style>
 </head>
 <body>
-  <div class="container">
-    <h1>Service Monitor</h1>
-    <p>Name: <b>{{.Name}}</b></p>
-    <p>Status: <span class="status {{if .StatusOK}}status-green{{else}}status-red{{end}}">{{.Status}}</span></p>
-    {{if gt .AutoRefresh 0}}<p>(Auto-refreshing every {{.AutoRefresh}}s)</p>{{end}}
-    <h3>Latest Logs</h3>
-    <pre>{{.Logs}}</pre>
-  </div>
+  <h1>NodeWatch</h1>
+  <p>Node Status: <span id="status" class="{{if .StatusOK}}Running{{else}}Stopped{{end}}">Loading...</span></p>
+  <pre id="logbox">Loading...</pre>
+
+  <script>
+    function fetchData() {
+      fetch('/data')
+        .then(res => res.json())
+        .then(data => {
+          const statusEl = document.getElementById('status');
+          const logEl = document.getElementById('logbox');
+          statusEl.textContent = data.status;
+          statusEl.className = data.statusOK ? 'ok' : 'fail';
+          logEl.textContent = data.logs;
+        });
+    }
+
+    setInterval(fetchData, 5000);
+    fetchData();
+  </script>
 </body>
 </html>

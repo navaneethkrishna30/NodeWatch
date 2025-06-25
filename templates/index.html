@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Service Monitor</title>
+  {{if gt .AutoRefresh 0}}
+  <meta http-equiv="refresh" content="{{.AutoRefresh}}">
+  {{end}}
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+  <div class="container">
+    <h1>Service Monitor</h1>
+    <p>Name: <b>{{.Name}}</b></p>
+    <p>Status: <span class="status {{if .StatusOK}}status-green{{else}}status-red{{end}}">{{.Status}}</span></p>
+    {{if gt .AutoRefresh 0}}<p>(Auto-refreshing every {{.AutoRefresh}}s)</p>{{end}}
+    <h3>Latest Logs</h3>
+    <pre>{{.Logs}}</pre>
+  </div>
+</body>
+</html>

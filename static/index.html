@@ -8,8 +8,9 @@
   <div class="container">
     <h1>🛠️ NodeWatch</h1>
     <p>Node Status: <span id="status" class="{{if .StatusOK}}ok{{else}}fail{{end}}">Loading...</span></p>
-
+    <div id="updatedAt" class="updated-at">Last updated at: Loading...</div>
     <div id="logbox" class="logbox">Loading logs...</div>
+    
   </div>
 
   <script>
@@ -19,6 +20,7 @@
         .then(data => {
           const statusEl = document.getElementById('status');
           const logEl = document.getElementById('logbox');
+          const updatedAtEl = document.getElementById('updatedAt');
           statusEl.textContent = data.status;
           statusEl.className = data.statusOK ? 'ok' : 'fail';
 
@@ -29,10 +31,12 @@
           if (shouldAutoScroll) {
             logEl.scrollTop = logEl.scrollHeight;
           }
+
+          updatedAtEl.textContent = 'Last updated at: ' + data.updatedAt + ' UTC';
         });
     }
 
-    setInterval(fetchData, 5000);
+    setInterval(fetchData, 1000);
     fetchData();
   </script>
 </body>

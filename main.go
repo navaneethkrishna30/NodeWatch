@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"os/exec"
 	"strings"
+	"time"
 )
 
 //go:embed static/*
@@ -112,17 +113,24 @@ func main() {
 	mux.HandleFunc("/data", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		status, logs, ok := getStatusAndLogs()
+		timestamp := strings.ToLower(jsonTimeFormat())
 		json.NewEncoder(w).Encode(struct {
-			Status   string `json:"status"`
-			StatusOK bool   `json:"statusOK"`
-			Logs     string `json:"logs"`
+			Status    string `json:"status"`
+			StatusOK  bool   `json:"statusOK"`
+			Logs      string `json:"logs"`
+			UpdatedAt string `json:"updatedAt"`
 		}{
-			Status:   status,
-			StatusOK: ok,
-			Logs:     logs,
+			Status:    status,
+			StatusOK:  ok,
+			Logs:      logs,
+			UpdatedAt: timestamp,
 		})
 	})
 
 	log.Printf("Listening on http://localhost:%s/\n", port)
 	log.Fatal(http.ListenAndServe(":"+port, mux))
+}
+
+func jsonTimeFormat() string {
+	return time.Now().UTC().Format("3:04pm 02-01-2006")
 }

@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>NodeWatch</title>
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+  <div class="container">
+    <h1>🛠️ NodeWatch</h1>
+    <p>Node Status: <span id="status" class="{{if .StatusOK}}ok{{else}}fail{{end}}">Loading...</span></p>
+
+    <div id="logbox" class="logbox">Loading logs...</div>
+  </div>
+
+  <script>
+    function fetchData() {
+      fetch('/data')
+        .then(res => res.json())
+        .then(data => {
+          const statusEl = document.getElementById('status');
+          const logEl = document.getElementById('logbox');
+          statusEl.textContent = data.status;
+          statusEl.className = data.statusOK ? 'ok' : 'fail';
+
+          const shouldAutoScroll = (logEl.scrollHeight - logEl.scrollTop - logEl.clientHeight) < 10;
+
+          logEl.textContent = data.logs;
+
+          if (shouldAutoScroll) {
+            logEl.scrollTop = logEl.scrollHeight;
+          }
+        });
+    }
+
+    setInterval(fetchData, 5000);
+    fetchData();
+  </script>
+</body>
+</html>

@@ -4,24 +4,27 @@ import (
 	"embed"
 	"encoding/json"
 	"flag"
+	"io/fs"
 	"log"
 	"net/http"
 	"os/exec"
 	"strings"
-	"io/fs"
 )
 
-//go:embed templates/*
+//go:embed static/*
 var staticFiles embed.FS
 
-//go:embed templates/index.html
+//go:embed static/index.html
 var indexHTML []byte
 
+//go:embed static/style.css
+var styleCSS []byte
+
 var (
-	mode        string
-	name        string
-	port        string
-	logfile     string
+	mode    string
+	name    string
+	port    string
+	logfile string
 )
 
 func getDockerStatus(name string) (string, bool) {

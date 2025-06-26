@@ -24,12 +24,10 @@
           const logEl = document.getElementById('logbox');
           const updatedAtEl = document.getElementById('updatedAt');
           if (data.statusOK) {
-            statusTextEl.textContent = 'Running';
-            statusIconEl.textContent = '●';
+            statusTextEl.textContent = '🟢 Running';
             statusIconEl.className = 'status-icon ok';
           } else {
-            statusTextEl.textContent = 'Not running';
-            statusIconEl.textContent = '●';
+            statusTextEl.textContent = '🔴 Not running';
             statusIconEl.className = 'status-icon fail';
           }
 

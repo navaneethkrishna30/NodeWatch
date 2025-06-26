@@ -26,16 +26,6 @@ h1 {
   margin-right: 0.5em;
 }
 
-.ok {
-  color: green;
-  font-weight: bold;
-}
-
-.fail {
-  color: red;
-  font-weight: bold;
-}
-
 .logbox {
   background-color: #111;
   color: #0f0;

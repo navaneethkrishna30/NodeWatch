@@ -18,9 +18,6 @@ var staticFiles embed.FS
 //go:embed static/index.html
 var indexHTML []byte
 
-//go:embed static/style.css
-var styleCSS []byte
-
 var (
 	mode    string
 	name    string

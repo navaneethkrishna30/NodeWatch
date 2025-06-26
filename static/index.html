@@ -3,11 +3,12 @@
 <head>
   <title>NodeWatch</title>
   <link rel="stylesheet" href="/static/style.css">
+  <link rel="icon" type="image/png" href="/static/logo.png">
 </head>
 <body>
   <div class="container">
-    <h1>🛠️ NodeWatch</h1>
-    <p>Node Status: <span id="status" class="{{if .StatusOK}}ok{{else}}fail{{end}}">Loading...</span></p>
+    <h1><img src="/static/logo.png" alt="NodeWatch Logo" class="logo"> NodeWatch</h1>
+    <p>Node Status: <span id="statusIcon" class="status-icon"></span> <span id="statusText">Loading...</span></p>
     <div id="updatedAt" class="updated-at">Last updated at: Loading...</div>
     <div id="logbox" class="logbox">Loading logs...</div>
     
@@ -18,11 +19,19 @@
       fetch('/data')
         .then(res => res.json())
         .then(data => {
-          const statusEl = document.getElementById('status');
+          const statusTextEl = document.getElementById('statusText');
+          const statusIconEl = document.getElementById('statusIcon');
           const logEl = document.getElementById('logbox');
           const updatedAtEl = document.getElementById('updatedAt');
-          statusEl.textContent = data.status;
-          statusEl.className = data.statusOK ? 'ok' : 'fail';
+          if (data.statusOK) {
+            statusTextEl.textContent = 'Running';
+            statusIconEl.textContent = '●';
+            statusIconEl.className = 'status-icon ok';
+          } else {
+            statusTextEl.textContent = 'Not running';
+            statusIconEl.textContent = '●';
+            statusIconEl.className = 'status-icon fail';
+          }
 
           const shouldAutoScroll = (logEl.scrollHeight - logEl.scrollTop - logEl.clientHeight) < 10;
 
@@ -36,7 +45,7 @@
         });
     }
 
-    setInterval(fetchData, 1000);
+    setInterval(fetchData, 10000);
     fetchData();
   </script>
 </body>

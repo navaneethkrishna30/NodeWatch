@@ -132,5 +132,5 @@ func main() {
 }
 
 func jsonTimeFormat() string {
-	return time.Now().UTC().Format("3:04pm 02-01-2006")
+	return time.Now().UTC().Format("02-01-2006 15:04:05")
 }

@@ -25,6 +25,13 @@ var (
 	logfile string
 )
 
+// MetricsResponse represents the JSON API response structure
+type MetricsResponse struct {
+	Status        bool      `json:"status"`
+	LastUpdatedAt time.Time `json:"last_updated_at"`
+	Logs          []string  `json:"logs"`
+}
+
 func getDockerStatus(name string) (string, bool) {
 	cmd := exec.Command("docker", "inspect", "-f", "{{.State.Running}}", name)
 	out, err := cmd.Output()
@@ -35,21 +42,35 @@ func getDockerStatus(name string) (string, bool) {
 	return status, status == "true"
 }
 
-func getDockerLogs(name, logfile string) string {
+func getDockerLogs(name, logfile string) []string {
+	var logs string
 	if logfile != "" {
 		cmd := exec.Command("docker", "exec", name, "tail", "-n", "100", logfile)
 		out, err := cmd.CombinedOutput()
 		if err != nil {
-			return err.Error()
+			logs = err.Error()
+		} else {
+			logs = string(out)
 		}
-		return string(out)
+	} else {
+		cmd := exec.Command("docker", "logs", "--tail", "100", name)
+		out, err := cmd.CombinedOutput()
+		if err != nil {
+			logs = err.Error()
+		} else {
+			logs = string(out)
+		}
 	}
-	cmd := exec.Command("docker", "logs", "--tail", "100", name)
-	out, err := cmd.CombinedOutput()
-	if err != nil {
-		return err.Error()
+
+	// Split logs into array by lines and filter empty lines
+	logLines := strings.Split(logs, "\n")
+	var filteredLogs []string
+	for _, line := range logLines {
+		if strings.TrimSpace(line) != "" {
+			filteredLogs = append(filteredLogs, line)
+		}
 	}
-	return string(out)
+	return filteredLogs
 }
 
 func getSystemdStatus(name string) (string, bool) {
@@ -62,17 +83,30 @@ func getSystemdStatus(name string) (string, bool) {
 	return status, status == "active"
 }
 
-func getSystemdLogs(name string) string {
+func getSystemdLogs(name string) []string {
 	cmd := exec.Command("journalctl", "-u", name, "--no-pager", "-n", "100")
 	out, err := cmd.CombinedOutput()
+	var logs string
 	if err != nil {
-		return err.Error()
+		logs = err.Error()
+	} else {
+		logs = string(out)
 	}
-	return string(out)
+
+	// Split logs into array by lines and filter empty lines
+	logLines := strings.Split(logs, "\n")
+	var filteredLogs []string
+	for _, line := range logLines {
+		if strings.TrimSpace(line) != "" {
+			filteredLogs = append(filteredLogs, line)
+		}
+	}
+	return filteredLogs
 }
 
-func getStatusAndLogs() (string, string, bool) {
-	var status, logs string
+func getStatusAndLogs() (string, []string, bool) {
+	var status string
+	var logs []string
 	var ok bool
 	if mode == "docker" {
 		status, ok = getDockerStatus(name)
@@ -106,25 +140,54 @@ func main() {
 		w.Write(indexHTML)
 	})
 
-	// Async data endpoint
+	// New metrics API endpoint
+	mux.HandleFunc("/metrics", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.Header().Set("Access-Control-Allow-Origin", "*")
+		w.Header().Set("Access-Control-Allow-Methods", "GET, OPTIONS")
+		w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
+
+		if r.Method == "OPTIONS" {
+			w.WriteHeader(http.StatusOK)
+			return
+		}
+
+		_, logs, ok := getStatusAndLogs()
+		now := time.Now().UTC()
+
+		response := MetricsResponse{
+			Status:        ok,
+			LastUpdatedAt: now,
+			Logs:          logs,
+		}
+
+		json.NewEncoder(w).Encode(response)
+	})
+
+	// Legacy data endpoint for backward compatibility with frontend
 	mux.HandleFunc("/data", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
-		status, logs, ok := getStatusAndLogs()
+		_, logs, ok := getStatusAndLogs()
 		timestamp := strings.ToLower(jsonTimeFormat())
+
+		// Convert logs array back to string for legacy compatibility
+		logsString := strings.Join(logs, "\n")
+
 		json.NewEncoder(w).Encode(struct {
 			Status    string `json:"status"`
 			StatusOK  bool   `json:"statusOK"`
 			Logs      string `json:"logs"`
 			UpdatedAt string `json:"updatedAt"`
 		}{
-			Status:    status,
+			Status:    "Unknown", // Placeholder since we don't need the actual status string
 			StatusOK:  ok,
-			Logs:      logs,
+			Logs:      logsString,
 			UpdatedAt: timestamp,
 		})
 	})
 
 	log.Printf("Listening on http://localhost:%s/\n", port)
+	log.Printf("Metrics API available at http://localhost:%s/metrics\n", port)
 	log.Fatal(http.ListenAndServe(":"+port, mux))
 }
 

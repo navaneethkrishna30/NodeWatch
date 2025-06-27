@@ -16,14 +16,15 @@
 
   <script>
     function fetchData() {
-      fetch('/data')
+      fetch('/metrics')
         .then(res => res.json())
         .then(data => {
           const statusTextEl = document.getElementById('statusText');
           const statusIconEl = document.getElementById('statusIcon');
           const logEl = document.getElementById('logbox');
           const updatedAtEl = document.getElementById('updatedAt');
-          if (data.statusOK) {
+          
+          if (data.status) {
             statusTextEl.textContent = '🟢 Running';
             statusIconEl.className = 'status-icon ok';
           } else {
@@ -33,13 +34,31 @@
 
           const shouldAutoScroll = (logEl.scrollHeight - logEl.scrollTop - logEl.clientHeight) < 10;
 
-          logEl.textContent = data.logs;
+          // Convert logs array to string for display
+          const logsText = data.logs.join('\n');
+          logEl.textContent = logsText;
 
           if (shouldAutoScroll) {
             logEl.scrollTop = logEl.scrollHeight;
           }
 
-          updatedAtEl.textContent = 'Last updated at: ' + data.updatedAt + ' UTC';
+          // Format the timestamp
+          const timestamp = new Date(data.last_updated_at).toLocaleString('en-US', {
+            timeZone: 'UTC',
+            year: 'numeric',
+            month: '2-digit',
+            day: '2-digit',
+            hour: '2-digit',
+            minute: '2-digit',
+            second: '2-digit',
+            hour12: false
+          });
+          updatedAtEl.textContent = 'Last updated at: ' + timestamp + ' UTC';
+        })
+        .catch(error => {
+          console.error('Error fetching metrics:', error);
+          document.getElementById('statusText').textContent = '❌ Error';
+          document.getElementById('logbox').textContent = 'Error fetching data: ' + error.message;
         });
     }
 

@@ -6,6 +6,7 @@ import (
 	"io/fs"
 	"log"
 	"net/http"
+	"time"
 )
 
 //go:embed static/*
@@ -15,11 +16,12 @@ var staticFiles embed.FS
 var indexHTML []byte
 
 var (
-	name           string
-	port           string
-	logfile        string
-	subscriptionID string
-	nodeType       string
+	name             string
+	port             string
+	logfile          string
+	subscriptionID   string
+	nodeType         string
+	lokiPushInterval int
 )
 
 func main() {
@@ -29,7 +31,8 @@ func main() {
 	flag.StringVar(&logfile, "logfile", "", "Log file path to monitor")
 	flag.StringVar(&subscriptionID, "subscription-id", "", "Subscription ID")
 	flag.StringVar(&nodeType, "node-type", "", "Node type")
-	flag.StringVar(&lokiURL, "loki-url", "http://localhost:3100/loki/api/v1/push", "Loki push URL")
+	flag.StringVar(&lokiURL, "loki-url", "", "Loki push URL")
+	flag.IntVar(&lokiPushInterval, "loki-push-interval", 10, "Interval (in seconds) to push logs to Loki")
 	flag.Parse()
 
 	if name == "" || logfile == "" || subscriptionID == "" || nodeType == "" {
@@ -45,6 +48,15 @@ func main() {
 
 	registerMetricsEndpoint(mux, &name, &logfile, &lokiURL, &subscriptionID, &nodeType)
 	registerEndpoints(mux, staticContent, indexHTML, &name, &logfile, &lokiURL, &subscriptionID, &nodeType)
+
+	go func() {
+		ticker := time.NewTicker(time.Duration(lokiPushInterval) * time.Second)
+		defer ticker.Stop()
+		for {
+			<-ticker.C
+			getFileLogs(lokiURL, name, logfile, subscriptionID, nodeType)
+		}
+	}()
 
 	log.Printf("Listening on http://localhost:%s/\n", port)
 	log.Printf("Status endpoint available at http://localhost:%s/status\n", port)

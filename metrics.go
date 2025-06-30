@@ -8,7 +8,7 @@ import (
 
 func registerMetricsEndpoint(mux *http.ServeMux) {
 	mux.HandleFunc("/metrics", func(w http.ResponseWriter, r *http.Request) {
-		_, _, ok := getStatusAndLogs()
+		_, _, ok := getStatusAndLogs(mode, name, logfile)
 		w.Header().Set("Content-Type", "text/plain; version=0.0.4")
 
 		var nodeStatus int

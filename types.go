@@ -11,10 +11,12 @@ type MetricsResponse struct {
 	NodeType       string    `json:"node_type"`
 }
 
+// LokiPayload represents the data structure for sending logs to Loki.
 type LokiPayload struct {
 	Streams []LokiStream `json:"streams"`
 }
 
+// LokiStream represents a single log stream in Loki.
 type LokiStream struct {
 	Stream map[string]string `json:"stream"`
 	Values [][]string        `json:"values"`

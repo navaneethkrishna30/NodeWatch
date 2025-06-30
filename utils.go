@@ -8,8 +8,11 @@ import (
 	"time"
 )
 
+// activityTimeout defines the duration of inactivity after which a node is considered 'dead'.
 var activityTimeout = 30 * time.Second
 
+// getFileLogs reads the tail of a log file, determines node status based on
+// log file modification time, and sends logs to Loki.
 func getFileLogs(lokiURL, name, logfile, subscriptionID, nodeType string) (string, *LokiStream, bool, []string) {
 	info, err := os.Stat(logfile)
 	var logs []string

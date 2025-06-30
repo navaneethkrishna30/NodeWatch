@@ -41,7 +41,6 @@ function fetchData() {
         logEl.scrollTop = logEl.scrollHeight;
       }
 
-      // Format the timestamp
       const dateObj = new Date(data.last_updated_at);
       const pad = n => n.toString().padStart(2, '0');
       const timestamp = `${pad(dateObj.getUTCDate())}-${pad(dateObj.getUTCMonth() + 1)}-${pad(dateObj.getUTCFullYear())} ${pad(dateObj.getUTCHours())}:${pad(dateObj.getUTCMinutes())}:${pad(dateObj.getUTCSeconds())} UTC`;
@@ -54,5 +53,6 @@ function fetchData() {
     });
 }
 
+// Poll for new data every 30 seconds
 setInterval(fetchData, 30000);
 fetchData(); 

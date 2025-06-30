@@ -43,10 +43,7 @@ func main() {
 
 	mux := http.NewServeMux()
 
-	// Register Prometheus metrics endpoint
 	registerMetricsEndpoint(mux, &name, &logfile, &lokiURL, &subscriptionID, &nodeType)
-
-	// Register all other endpoints
 	registerEndpoints(mux, staticContent, indexHTML, &name, &logfile, &lokiURL, &subscriptionID, &nodeType)
 
 	log.Printf("Listening on http://localhost:%s/\n", port)

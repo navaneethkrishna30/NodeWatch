@@ -9,15 +9,12 @@ import (
 )
 
 func registerEndpoints(mux *http.ServeMux, staticContent fs.FS, indexHTML []byte, name, logfile, lokiURL, subscriptionID, nodeType *string) {
-	// Static assets
 	mux.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.FS(staticContent))))
 
-	// Homepage
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		w.Write(indexHTML)
 	})
 
-	// Status API endpoint
 	mux.HandleFunc("/status", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		w.Header().Set("Access-Control-Allow-Origin", "*")
@@ -46,7 +43,6 @@ func registerEndpoints(mux *http.ServeMux, staticContent fs.FS, indexHTML []byte
 		json.NewEncoder(w).Encode(response)
 	})
 
-	// Health endpoint
 	mux.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		w.Header().Set("Access-Control-Allow-Origin", "*")

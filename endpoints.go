@@ -8,7 +8,7 @@ import (
 	"time"
 )
 
-func registerEndpoints(mux *http.ServeMux, staticContent fs.FS, indexHTML []byte, mode, name, logfile *string) {
+func registerEndpoints(mux *http.ServeMux, staticContent fs.FS, indexHTML []byte, name, logfile, lokiURL, subscriptionID, nodeType *string) {
 	// Static assets
 	mux.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.FS(staticContent))))
 
@@ -29,17 +29,11 @@ func registerEndpoints(mux *http.ServeMux, staticContent fs.FS, indexHTML []byte
 			return
 		}
 
-		_, stream, ok := getStatusAndLogs(*mode, *name, *logfile)
+		_, ok, logs := func() (string, bool, []string) {
+			_, _, ok, logs := getFileLogs(*lokiURL, *name, *logfile, *subscriptionID, *nodeType)
+			return "", ok, logs
+		}()
 		now := time.Now().UTC()
-
-		var logs []string
-		if stream != nil {
-			for _, v := range stream.Values {
-				if len(v) > 1 {
-					logs = append(logs, v[1])
-				}
-			}
-		}
 
 		response := MetricsResponse{
 			Status:        ok,
@@ -75,7 +69,7 @@ func registerEndpoints(mux *http.ServeMux, staticContent fs.FS, indexHTML []byte
 	// Legacy data endpoint for backward compatibility with frontend
 	mux.HandleFunc("/data", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
-		_, stream, ok := getStatusAndLogs(*mode, *name, *logfile)
+		status, stream, ok, _ := getFileLogs(*lokiURL, *name, *logfile, *subscriptionID, *nodeType)
 		timestamp := strings.ToLower(jsonTimeFormat())
 
 		var logs []string
@@ -94,7 +88,7 @@ func registerEndpoints(mux *http.ServeMux, staticContent fs.FS, indexHTML []byte
 			Logs      string `json:"logs"`
 			UpdatedAt string `json:"updatedAt"`
 		}{
-			Status:    "Unknown",
+			Status:    status,
 			StatusOK:  ok,
 			Logs:      logsString,
 			UpdatedAt: timestamp,

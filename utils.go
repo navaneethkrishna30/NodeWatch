@@ -2,89 +2,63 @@ package main
 
 import (
 	"fmt"
+	"os"
 	"os/exec"
 	"strings"
 	"time"
 )
 
-func getDockerStatus(name string) (string, bool) {
-	cmd := exec.Command("docker", "inspect", "-f", "{{.State.Running}}", name)
-	out, err := cmd.Output()
+var activityTimeout = 30 * time.Second
+
+func getFileLogs(lokiURL, name, logfile, subscriptionID, nodeType string) (string, *LokiStream, bool, []string) {
+	info, err := os.Stat(logfile)
+	var logs []string
 	if err != nil {
-		return "Not Found", false
-	}
-	status := strings.TrimSpace(string(out))
-	return status, status == "true"
-}
-
-func getDockerLogs(name, logfile string) *LokiStream {
-	var logs string
-	if logfile != "" {
-		cmd := exec.Command("docker", "exec", name, "tail", "-n", "100", logfile)
-		out, err := cmd.CombinedOutput()
-		if err != nil {
-			logs = err.Error()
-		} else {
-			logs = string(out)
+		if os.IsNotExist(err) {
+			return "Not Found", nil, false, logs
 		}
-	} else {
-		cmd := exec.Command("docker", "logs", "--tail", "100", name)
-		out, err := cmd.CombinedOutput()
-		if err != nil {
-			logs = err.Error()
-		} else {
-			logs = string(out)
-		}
+		return "error stating file", nil, false, logs
 	}
 
-	logLines := strings.Split(logs, "\n")
-	return createLokiStream(name, logLines)
-}
-
-func getSystemdStatus(name string) (string, bool) {
-	cmd := exec.Command("systemctl", "is-active", name)
-	out, err := cmd.Output()
-	if err != nil {
-		return "Unknown", false
-	}
-	status := strings.TrimSpace(string(out))
-	return status, status == "active"
-}
-
-func getSystemdLogs(name string) *LokiStream {
-	cmd := exec.Command("journalctl", "-u", name, "--no-pager", "-n", "100")
+	cmd := exec.Command("tail", "-n", "100", logfile)
 	out, err := cmd.CombinedOutput()
-	var logs string
+	var logContent string
 	if err != nil {
-		logs = err.Error()
+		logContent = "error reading logs: " + err.Error()
 	} else {
-		logs = string(out)
+		logContent = string(out)
 	}
 
-	logLines := strings.Split(logs, "\n")
-	return createLokiStream(name, logLines)
-}
+	logLines := strings.Split(logContent, "\n")
+	for _, line := range logLines {
+		if strings.TrimSpace(line) != "" {
+			logs = append(logs, line)
+		}
+	}
 
-func getStatusAndLogs(mode, name, logfile string) (string, *LokiStream, bool) {
 	var status string
-	var stream *LokiStream
 	var ok bool
-	if mode == "docker" {
-		status, ok = getDockerStatus(name)
-		stream = getDockerLogs(name, logfile)
+	if time.Since(info.ModTime()) > activityTimeout {
+		status = "dead"
+		ok = false
 	} else {
-		status, ok = getSystemdStatus(name)
-		stream = getSystemdLogs(name)
+		status = "running"
+		ok = true
 	}
-	go pushToLoki(name, stream)
-	return status, stream, ok
+
+	stream := createLokiStream(name, subscriptionID, nodeType, logs)
+	if stream != nil && ok {
+		go pushToLoki(lokiURL, name, stream)
+	}
+
+	return status, stream, ok, logs
 }
 
 func jsonTimeFormat() string {
 	return time.Now().UTC().Format("02-01-2006 15:04:05")
 }
 
-func createLokiStream(name string, logLines []string) *LokiStream {
+func createLokiStream(name, subscriptionID, nodeType string, logLines []string) *LokiStream {
 	var filteredLogs []string
 	for _, line := range logLines {
 		if strings.TrimSpace(line) != "" {
@@ -103,7 +77,9 @@ func createLokiStream(name string, logLines []string) *LokiStream {
 
 	return &LokiStream{
 		Stream: map[string]string{
-			"job": name,
+			"job":             name,
+			"subscription_id": subscriptionID,
+			"node_type":       nodeType,
 		},
 		Values: values,
 	}

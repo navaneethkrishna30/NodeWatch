@@ -7,9 +7,7 @@ import (
 	"net/http"
 )
 
-const lokiURL = "http://localhost:3100/loki/api/v1/push"
-
-func pushToLoki(name string, stream *LokiStream) {
+func pushToLoki(lokiURL, name string, stream *LokiStream) {
 	if stream == nil || len(stream.Values) == 0 {
 		return
 	}

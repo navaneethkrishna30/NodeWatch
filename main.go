@@ -15,18 +15,26 @@ var staticFiles embed.FS
 var indexHTML []byte
 
 var (
-	mode    string
-	name    string
-	port    string
-	logfile string
+	name           string
+	port           string
+	logfile        string
+	subscriptionID string
+	nodeType       string
 )
 
 func main() {
-	flag.StringVar(&mode, "mode", "docker", "Mode: docker or systemd")
-	flag.StringVar(&name, "name", "", "Container or service name")
+	var lokiURL string
+	flag.StringVar(&name, "name", "", "Name of the service being monitored")
 	flag.StringVar(&port, "port", "6969", "Port")
-	flag.StringVar(&logfile, "logfile", "", "Docker container log file path")
+	flag.StringVar(&logfile, "logfile", "", "Log file path to monitor")
+	flag.StringVar(&subscriptionID, "subscription-id", "", "Subscription ID")
+	flag.StringVar(&nodeType, "node-type", "", "Node type")
+	flag.StringVar(&lokiURL, "loki-url", "http://localhost:3100/loki/api/v1/push", "Loki push URL")
 	flag.Parse()
+
+	if name == "" || logfile == "" || subscriptionID == "" || nodeType == "" {
+		log.Fatal("-name, -logfile, -subscription-id, and -node-type parameters are required.")
+	}
 
 	staticContent, err := fs.Sub(staticFiles, "static")
 	if err != nil {
@@ -36,10 +44,10 @@ func main() {
 	mux := http.NewServeMux()
 
 	// Register Prometheus metrics endpoint
-	registerMetricsEndpoint(mux)
+	registerMetricsEndpoint(mux, &name, &logfile, &lokiURL, &subscriptionID, &nodeType)
 
 	// Register all other endpoints
-	registerEndpoints(mux, staticContent, indexHTML, &mode, &name, &logfile)
+	registerEndpoints(mux, staticContent, indexHTML, &name, &logfile, &lokiURL, &subscriptionID, &nodeType)
 
 	log.Printf("Listening on http://localhost:%s/\n", port)
 	log.Printf("Status endpoint available at http://localhost:%s/status\n", port)

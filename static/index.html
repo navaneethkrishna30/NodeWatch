@@ -34,8 +34,19 @@
 
           const shouldAutoScroll = (logEl.scrollHeight - logEl.scrollTop - logEl.clientHeight) < 10;
 
-          // Convert logs array to string for display
-          const logsText = data.logs.join('\n');
+          // Show logs or a message if none are available
+          let logsText = '';
+          if (Array.isArray(data.logs) && data.logs.length > 0) {
+            logsText = data.logs.join('\n');
+          } else {
+            logsText = 'No logs available.';
+          }
+
+          // If node is not running, prepend a message
+          if (!data.status) {
+            logsText = '[Node is not running]\n' + logsText;
+          }
+
           logEl.textContent = logsText;
 
           if (shouldAutoScroll) {
@@ -45,7 +56,7 @@
           // Format the timestamp
           const dateObj = new Date(data.last_updated_at);
           const pad = n => n.toString().padStart(2, '0');
-          const timestamp = `${pad(dateObj.getUTCDate())}-${pad(dateObj.getUTCMonth() + 1)}-${dateObj.getUTCFullYear()} ${pad(dateObj.getUTCHours())}:${pad(dateObj.getUTCMinutes())}:${pad(dateObj.getUTCSeconds())} UTC`;
+          const timestamp = `${pad(dateObj.getUTCDate())}-${pad(dateObj.getUTCMonth() + 1)}-${pad(dateObj.getUTCFullYear())} ${pad(dateObj.getUTCHours())}:${pad(dateObj.getUTCMinutes())}:${pad(dateObj.getUTCSeconds())} UTC`;
           updatedAtEl.textContent = 'Last updated at: ' + timestamp;
         })
         .catch(error => {

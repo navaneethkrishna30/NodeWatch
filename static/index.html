@@ -43,17 +43,10 @@
           }
 
           // Format the timestamp
-          const timestamp = new Date(data.last_updated_at).toLocaleString('en-US', {
-            timeZone: 'UTC',
-            year: 'numeric',
-            month: '2-digit',
-            day: '2-digit',
-            hour: '2-digit',
-            minute: '2-digit',
-            second: '2-digit',
-            hour12: false
-          });
-          updatedAtEl.textContent = 'Last updated at: ' + timestamp + ' UTC';
+          const dateObj = new Date(data.last_updated_at);
+          const pad = n => n.toString().padStart(2, '0');
+          const timestamp = `${pad(dateObj.getUTCDate())}-${pad(dateObj.getUTCMonth() + 1)}-${dateObj.getUTCFullYear()} ${pad(dateObj.getUTCHours())}:${pad(dateObj.getUTCMinutes())}:${pad(dateObj.getUTCSeconds())} UTC`;
+          updatedAtEl.textContent = 'Last updated at: ' + timestamp;
         })
         .catch(error => {
           console.error('Error fetching metrics:', error);

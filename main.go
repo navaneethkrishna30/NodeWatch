@@ -140,8 +140,8 @@ func main() {
 		w.Write(indexHTML)
 	})
 
-	// New metrics API endpoint
-	mux.HandleFunc("/metrics", func(w http.ResponseWriter, r *http.Request) {
+	// Status API endpoint (moved from /metrics)
+	mux.HandleFunc("/status", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		w.Header().Set("Access-Control-Allow-Origin", "*")
 		w.Header().Set("Access-Control-Allow-Methods", "GET, OPTIONS")
@@ -162,6 +162,28 @@ func main() {
 		}
 
 		json.NewEncoder(w).Encode(response)
+	})
+
+	// Health endpoint
+	mux.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.Header().Set("Access-Control-Allow-Origin", "*")
+		w.Header().Set("Access-Control-Allow-Methods", "GET, OPTIONS")
+		w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
+
+		if r.Method == "OPTIONS" {
+			w.WriteHeader(http.StatusOK)
+			return
+		}
+
+		now := time.Now().UTC()
+		json.NewEncoder(w).Encode(struct {
+			Running   bool      `json:"running"`
+			Timestamp time.Time `json:"timestamp"`
+		}{
+			Running:   true,
+			Timestamp: now,
+		})
 	})
 
 	// Legacy data endpoint for backward compatibility with frontend
@@ -187,7 +209,8 @@ func main() {
 	})
 
 	log.Printf("Listening on http://localhost:%s/\n", port)
-	log.Printf("Metrics API available at http://localhost:%s/metrics\n", port)
+	log.Printf("Status API available at http://localhost:%s/status\n", port)
+	log.Printf("Health API available at http://localhost:%s/health\n", port)
 	log.Fatal(http.ListenAndServe(":"+port, mux))
 }
 

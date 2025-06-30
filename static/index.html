@@ -16,7 +16,7 @@
 
   <script>
     function fetchData() {
-      fetch('/metrics')
+      fetch('/status')
         .then(res => res.json())
         .then(data => {
           const statusTextEl = document.getElementById('statusText');

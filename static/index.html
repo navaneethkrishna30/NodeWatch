@@ -9,65 +9,13 @@
   <div class="container">
     <h1><img src="/static/logo.png" alt="NodeWatch Logo" class="logo"> NodeWatch</h1>
     <p>Node Status: <span id="statusIcon" class="status-icon"></span> <span id="statusText">Loading...</span></p>
+    <p>Subscription ID: <span id="subscriptionId">Loading...</span></p>
+    <p>Node Type: <span id="nodeType">Loading...</span></p>
     <div id="updatedAt" class="updated-at">Last updated at: Loading...</div>
     <div id="logbox" class="logbox">Loading logs...</div>
     
   </div>
 
-  <script>
-    function fetchData() {
-      fetch('/status')
-        .then(res => res.json())
-        .then(data => {
-          const statusTextEl = document.getElementById('statusText');
-          const statusIconEl = document.getElementById('statusIcon');
-          const logEl = document.getElementById('logbox');
-          const updatedAtEl = document.getElementById('updatedAt');
-          
-          if (data.status) {
-            statusTextEl.textContent = '🟢 Running';
-            statusIconEl.className = 'status-icon ok';
-          } else {
-            statusTextEl.textContent = '🔴 Not running';
-            statusIconEl.className = 'status-icon fail';
-          }
-
-          const shouldAutoScroll = (logEl.scrollHeight - logEl.scrollTop - logEl.clientHeight) < 10;
-
-          // Show logs or a message if none are available
-          let logsText = '';
-          if (Array.isArray(data.logs) && data.logs.length > 0) {
-            logsText = data.logs.join('\n');
-          } else {
-            logsText = 'No logs available.';
-          }
-
-          // If node is not running, prepend a message
-          if (!data.status) {
-            logsText = '[Node is not running]\n' + logsText;
-          }
-
-          logEl.textContent = logsText;
-
-          if (shouldAutoScroll) {
-            logEl.scrollTop = logEl.scrollHeight;
-          }
-
-          // Format the timestamp
-          const dateObj = new Date(data.last_updated_at);
-          const pad = n => n.toString().padStart(2, '0');
-          const timestamp = `${pad(dateObj.getUTCDate())}-${pad(dateObj.getUTCMonth() + 1)}-${pad(dateObj.getUTCFullYear())} ${pad(dateObj.getUTCHours())}:${pad(dateObj.getUTCMinutes())}:${pad(dateObj.getUTCSeconds())} UTC`;
-          updatedAtEl.textContent = 'Last updated at: ' + timestamp;
-        })
-        .catch(error => {
-          console.error('Error fetching metrics:', error);
-          document.getElementById('statusText').textContent = '❌ Error';
-          document.getElementById('logbox').textContent = 'Error fetching data: ' + error.message;
-        });
-    }
-
-    setInterval(fetchData, 10000);
-    fetchData();
-  </script>
+  <script src="/static/script.js"></script>
 </body>
 </html>

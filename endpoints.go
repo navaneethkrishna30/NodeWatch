@@ -36,9 +36,11 @@ func registerEndpoints(mux *http.ServeMux, staticContent fs.FS, indexHTML []byte
 		now := time.Now().UTC()
 
 		response := MetricsResponse{
-			Status:        ok,
-			LastUpdatedAt: now,
-			Logs:          logs,
+			Status:         ok,
+			LastUpdatedAt:  now,
+			Logs:           logs,
+			SubscriptionID: *subscriptionID,
+			NodeType:       *nodeType,
 		}
 
 		json.NewEncoder(w).Encode(response)

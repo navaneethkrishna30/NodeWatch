@@ -132,6 +132,9 @@ func main() {
 
 	mux := http.NewServeMux()
 
+	// Register Prometheus metrics endpoint
+	registerMetricsEndpoint(mux)
+
 	// Static assets
 	mux.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.FS(staticContent))))
 

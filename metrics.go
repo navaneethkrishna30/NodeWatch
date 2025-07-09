@@ -8,7 +8,7 @@ import (
 
 func registerMetricsEndpoint(mux *http.ServeMux, name, logfile, lokiURL, subscriptionID, nodeType *string) {
 	mux.HandleFunc("/metrics", func(w http.ResponseWriter, r *http.Request) {
-		_, _, ok, _ := getFileLogs(*lokiURL, *name, *logfile, *subscriptionID, *nodeType)
+		_, ok, _ := getNodeStatus(*logfile)
 		w.Header().Set("Content-Type", "text/plain; version=0.0.4")
 
 		var nodeStatus int

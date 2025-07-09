@@ -3,7 +3,6 @@ package main
 import (
 	"fmt"
 	"os"
-	"os/exec"
 	"strings"
 	"time"
 )
@@ -11,54 +10,65 @@ import (
 // activityTimeout defines the duration of inactivity after which a node is considered 'dead'.
 var activityTimeout = 30 * time.Second
 
-// getFileLogs reads the tail of a log file, determines node status based on
-// log file modification time, and sends logs to Loki.
-func getFileLogs(lokiURL, name, logfile, subscriptionID, nodeType string) (string, *LokiStream, bool, []string) {
-	info, err := os.Stat(logfile)
-	var logs []string
+// lastLogOffset tracks the last byte offset read from the log file (in-memory, not persistent).
+var lastLogOffset int64 = 0
+
+// readNewLogLines reads only new lines from the log file since the last read and updates the offset.
+func readNewLogLines(logfile string) ([]string, error) {
+	f, err := os.Open(logfile)
 	if err != nil {
-		if os.IsNotExist(err) {
-			return "Not Found", nil, false, logs
+		return nil, err
+	}
+	defer f.Close()
+
+	_, err = f.Seek(lastLogOffset, 0)
+	if err != nil {
+		return nil, err
+	}
+
+	buf := make([]byte, 4096)
+	var content []byte
+	for {
+		n, err := f.Read(buf)
+		if n > 0 {
+			content = append(content, buf[:n]...)
 		}
-		return "error stating file", nil, false, logs
+		if err != nil {
+			break
+		}
 	}
 
-	cmd := exec.Command("tail", "-n", "100", logfile)
-	out, err := cmd.CombinedOutput()
-	var logContent string
-	if err != nil {
-		logContent = "error reading logs: " + err.Error()
-	} else {
-		logContent = string(out)
-	}
-
+	logContent := string(content)
 	logLines := strings.Split(logContent, "\n")
+	var logs []string
 	for _, line := range logLines {
 		if strings.TrimSpace(line) != "" {
 			logs = append(logs, line)
 		}
 	}
 
-	var status string
-	var ok bool
-	if time.Since(info.ModTime()) > activityTimeout {
-		status = "dead"
-		ok = false
-	} else {
-		status = "running"
-		ok = true
+	// Update the offset to the new end of file
+	if newOffset, err := f.Seek(0, 1); err == nil {
+		lastLogOffset = newOffset
 	}
 
-	stream := createLokiStream(name, subscriptionID, nodeType, logs)
-	if stream != nil && ok {
-		go pushToLoki(lokiURL, name, stream)
-	}
-
-	return status, stream, ok, logs
+	return logs, nil
 }
 
-func jsonTimeFormat() string {
-	return time.Now().UTC().Format("02-01-2006 15:04:05")
+// getNodeStatus checks the log file's mod time and returns status and ok.
+func getNodeStatus(logfile string) (string, bool, error) {
+	info, err := os.Stat(logfile)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return "Not Found", false, nil
+		}
+		return "error stating file", false, err
+	}
+
+	if time.Since(info.ModTime()) > activityTimeout {
+		return "dead", false, nil
+	}
+	return "running", true, nil
 }
 
 func createLokiStream(name, subscriptionID, nodeType string, logLines []string) *LokiStream {

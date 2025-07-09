@@ -1,19 +1,11 @@
 package main
 
 import (
-	"embed"
 	"flag"
-	"io/fs"
 	"log"
 	"net/http"
 	"time"
 )
-
-//go:embed static/*
-var staticFiles embed.FS
-
-//go:embed static/index.html
-var indexHTML []byte
 
 var (
 	name             string
@@ -39,22 +31,28 @@ func main() {
 		log.Fatal("-name, -logfile, -subscription-id, and -node-type parameters are required.")
 	}
 
-	staticContent, err := fs.Sub(staticFiles, "static")
-	if err != nil {
-		log.Fatal(err)
-	}
-
 	mux := http.NewServeMux()
 
 	registerMetricsEndpoint(mux, &name, &logfile, &lokiURL, &subscriptionID, &nodeType)
-	registerEndpoints(mux, staticContent, indexHTML, &name, &logfile, &lokiURL, &subscriptionID, &nodeType)
+	registerEndpoints(mux)
 
 	go func() {
 		ticker := time.NewTicker(time.Duration(lokiPushInterval) * time.Second)
 		defer ticker.Stop()
 		for {
 			<-ticker.C
-			getFileLogs(lokiURL, name, logfile, subscriptionID, nodeType)
+			logs, err := readNewLogLines(logfile)
+			if err != nil || len(logs) == 0 {
+				continue
+			}
+			// Remove unused status variable
+			_, ok, _ := getNodeStatus(logfile)
+			if ok {
+				stream := createLokiStream(name, subscriptionID, nodeType, logs)
+				if stream != nil {
+					go pushToLoki(lokiURL, name, stream)
+				}
+			}
 		}
 	}()
 

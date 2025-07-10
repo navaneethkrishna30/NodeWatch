@@ -55,9 +55,6 @@ func main() {
 			}
 		}
 	}()
-
-	log.Printf("Listening on http://localhost:%s/\n", port)
-	log.Printf("Status endpoint available at http://localhost:%s/status\n", port)
 	log.Printf("Health endpoint available at http://localhost:%s/health\n", port)
 	log.Printf("Metrics endpoint available at http://localhost:%s/metrics\n", port)
 	log.Fatal(http.ListenAndServe(":"+port, mux))

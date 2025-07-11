@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"encoding/json"
+	"io"
 	"log"
 	"net/http"
 )
@@ -22,12 +23,16 @@ func pushToLoki(lokiURL, name string, stream *LokiStream) {
 		return
 	}
 
+	// Send to the proxy (NGINX)
 	req, err := http.NewRequest("POST", lokiURL, bytes.NewBuffer(payloadBytes))
 	if err != nil {
 		log.Printf("Error creating Loki request: %v", err)
 		return
 	}
 	req.Header.Set("Content-Type", "application/json")
+
+	// Set the Monitoring-Access-Token header
+	req.Header.Set("Monitoring-Access-Token", monitoringAccessToken)
 
 	client := &http.Client{}
 	resp, err := client.Do(req)
@@ -38,6 +43,7 @@ func pushToLoki(lokiURL, name string, stream *LokiStream) {
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusNoContent {
-		log.Printf("Unexpected status code from Loki: %d", resp.StatusCode)
+		body, _ := io.ReadAll(resp.Body)
+		log.Printf("Unexpected status code from Loki: %d, response: %s", resp.StatusCode, string(body))
 	}
 }
